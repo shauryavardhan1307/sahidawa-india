@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { rateLimit } from "@/lib/rateLimit";
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const UPLOAD_RATE_LIMIT = 10;
-const UPLOAD_RATE_WINDOW_MS = 60 * 1000;
-
-const uploadRateBuckets = new Map<string, { count: number; resetAt: number }>();
 
 function getUploadClientIp(req: NextRequest) {
     const forwardedFor = req.headers.get("x-forwarded-for");
@@ -15,47 +12,20 @@ function getUploadClientIp(req: NextRequest) {
     return forwardedFor?.split(",")[0]?.trim() || realIp?.trim() || "127.0.0.1";
 }
 
-function pruneExpiredUploadBuckets(now: number) {
-    for (const [ip, bucket] of uploadRateBuckets) {
-        if (bucket.resetAt <= now) {
-            uploadRateBuckets.delete(ip);
-        }
-    }
-}
-
-function consumeUploadQuota(ip: string, now = Date.now()) {
-    pruneExpiredUploadBuckets(now);
-
-    const bucket = uploadRateBuckets.get(ip);
-
-    if (!bucket || bucket.resetAt <= now) {
-        uploadRateBuckets.set(ip, { count: 1, resetAt: now + UPLOAD_RATE_WINDOW_MS });
-        return { allowed: true, retryAfter: 0 };
-    }
-
-    if (bucket.count >= UPLOAD_RATE_LIMIT) {
-        return {
-            allowed: false,
-            retryAfter: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
-        };
-    }
-
-    bucket.count += 1;
-    return { allowed: true, retryAfter: 0 };
-}
-
 export async function POST(req: NextRequest) {
     try {
-        const quota = consumeUploadQuota(getUploadClientIp(req));
-        if (!quota.allowed) {
+        const ip = getUploadClientIp(req);
+        const { success, reset } = await rateLimit.limit(ip);
+        if (!success) {
+            const retryAfter = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
             return NextResponse.json(
                 {
                     error: "Too many upload requests. Please try again later.",
-                    retryAfter: quota.retryAfter,
+                    retryAfter,
                 },
                 {
                     status: 429,
-                    headers: { "Retry-After": quota.retryAfter.toString() },
+                    headers: { "Retry-After": retryAfter.toString() },
                 }
             );
         }

@@ -5,6 +5,28 @@ const API_KEY = "test-key";
 const API_SECRET = "test-secret";
 type UploadPost = typeof import("../app/api/upload/route").POST;
 
+const limitBuckets = new Map<string, { count: number; resetAt: number }>();
+const mockLimit = jest.fn().mockImplementation(async (ip: string) => {
+    const now = Date.now();
+    let bucket = limitBuckets.get(ip);
+    if (!bucket || bucket.resetAt <= now) {
+        bucket = { count: 0, resetAt: now + 60000 };
+        limitBuckets.set(ip, bucket);
+    }
+    bucket.count += 1;
+    if (bucket.count > 10) {
+        const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+        return { success: false, limit: 10, remaining: 0, reset: bucket.resetAt };
+    }
+    return { success: true, limit: 10, remaining: 10 - bucket.count, reset: bucket.resetAt };
+});
+
+jest.mock("@/lib/rateLimit", () => ({
+    rateLimit: {
+        limit: (ip: string) => mockLimit(ip),
+    },
+}));
+
 function buildRequest(
     fields: Record<string, string> = {},
     headers?: HeadersInit,
@@ -33,6 +55,8 @@ describe("POST /api/upload", () => {
 
     beforeEach(() => {
         jest.resetModules();
+        limitBuckets.clear();
+        mockLimit.mockClear();
         ({ POST: post } = require("../app/api/upload/route") as {
             POST: UploadPost;
         });
