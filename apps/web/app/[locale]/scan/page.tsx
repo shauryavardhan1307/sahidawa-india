@@ -45,17 +45,6 @@ import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { useTranslations } from "next-intl";
 import { buildVerificationShareText, type VerificationShareCopy } from "@/lib/verificationShare";
 import { structuredLog } from "@/lib/structuredLogger";
-import {
-    buildLocalScanHistoryEntry,
-    saveLocalScanHistoryEntry,
-    type BuildLocalScanHistoryEntryOptions,
-    type LocalScanHistorySource,
-} from "@/lib/localScanHistory";
-
-type ScanHistoryContext = Omit<
-    BuildLocalScanHistoryEntryOptions,
-    "id" | "scannedAt" | "result" | "errorMessage"
->;
 
 import { saveScanHistory } from "@/lib/db/scanHistory";
 
@@ -536,9 +525,7 @@ export default function ScanPage() {
     const ocrCancelledRef = useRef(false);
 
     // Auto-retry when coming back online
-    const handleVerifyRef = useRef<
-        (batch: string, source?: LocalScanHistorySource) => Promise<void>
-    >(null as any);
+    const handleVerifyRef = useRef<(batch: string) => Promise<void>>(null as any);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -723,7 +710,7 @@ export default function ScanPage() {
     };
 
     const handleVerify = useCallback(
-        async (batch: string, source: LocalScanHistorySource = "manual") => {
+        async (batch: string) => {
             if (!batch.trim()) {
                 toast.error("Please enter a batch number to verify");
                 return;
@@ -869,7 +856,7 @@ export default function ScanPage() {
                     setBatchInput(barcodeText);
                     setOcrStatus("done");
                     toast.success(`Barcode detected: ${barcodeText} — verifying…`);
-                    await handleVerify(barcodeText, "photo");
+                    await handleVerify(barcodeText);
                     return;
                 }
             } catch (error) {
@@ -1060,19 +1047,6 @@ export default function ScanPage() {
             }
         }
     };
-    const handleCameraPermissionDenied = useCallback(() => {
-        setIsCameraActive(false);
-        toast.error("Camera access denied. Please enter batch number manually.", {
-            duration: 4000,
-        });
-        // Auto focus batch input
-        setTimeout(() => {
-            const input = document.querySelector(
-                'input[placeholder="Enter batch number"]'
-            ) as HTMLInputElement;
-            input?.focus();
-        }, 300);
-    }, []);
     const handleBarcodeScan = useCallback(
         async (scannedText: string) => {
             setIsVerifying(true);
@@ -1157,7 +1131,7 @@ export default function ScanPage() {
 
     const handleBatchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        handleVerify(batchInput, "manual");
+        handleVerify(batchInput);
     };
 
     return (
