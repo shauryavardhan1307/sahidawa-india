@@ -90,14 +90,37 @@ export default function MapView() {
 
                 if (!mounted) return;
 
-                setPharmacies(Array.isArray(data.pharmacies) ? data.pharmacies : []);
-                setAshaWorkers(Array.isArray(data.asha_workers) ? data.asha_workers : []);
-            } catch (e: any) {
-                if (e?.name === "AbortError") return;
-                console.error("[MapView] Error loading nearby map data:", e);
-                if (mounted) setError("Unable to load nearby map data.");
+                // Normalize and decode incoming data once to avoid per-render DOM decoding
+                const normalizedPharmacies: Pharmacy[] = Array.isArray(data.pharmacies)
+                    ? data.pharmacies.map((p: Pharmacy) => ({
+                          ...p,
+                          name: decodeHtmlEntities(p.name),
+                          address: decodeHtmlEntities(p.address),
+                      }))
+                    : [];
+
+                const normalizedAsha: AshaWorker[] = Array.isArray(data.asha_workers)
+                    ? data.asha_workers.map((a: AshaWorker) => ({
+                          ...a,
+                          name: decodeHtmlEntities(a.name),
+                      }))
+                    : [];
+
+                // Only apply results if this controller is still the latest
+                if (abortControllerRef.current === controller) {
+                    setPharmacies(normalizedPharmacies);
+                    setAshaWorkers(normalizedAsha);
+                }
+            } catch (err: unknown) {
+                if (err instanceof DOMException && err.name === "AbortError") return;
+                console.error("[MapView] Error loading nearby map data:", err);
+                if (mounted && abortControllerRef.current === controller) {
+                    setError("Unable to load nearby map data.");
+                }
             } finally {
-                if (mounted) setLoading(false);
+                if (mounted && abortControllerRef.current === controller) {
+                    setLoading(false);
+                }
             }
         }
 
@@ -176,12 +199,12 @@ export default function MapView() {
                     pharmacies.map((p) => (
                         <Marker key={`ph-${p.id}`} position={[p.lat, p.lng]} icon={greenIcon}>
                             <Popup>
-                                <strong>{decodeHtmlEntities(p.name)}</strong>
+                                <strong>{p.name}</strong>
                                 <br />
                                 Type: {p.type}
                                 <br />
                                 <div className="flex items-center gap-1">
-                                    <span>Address: {decodeHtmlEntities(p.address)}</span>
+                                    <span>Address: {p.address}</span>
                                     <CopyButton text={p.address} className="h-4 w-4" />
                                 </div>
                                 Distance: {p.distance_km} km
@@ -195,7 +218,7 @@ export default function MapView() {
                     ashaWorkers.map((a) => (
                         <Marker key={`asha-${a.id}`} position={[a.lat, a.lng]} icon={blueIcon}>
                             <Popup>
-                                <strong>{decodeHtmlEntities(a.name)}</strong>
+                                <strong>{a.name}</strong>
                                 <br />
                                 District: {a.district}
                                 <br />
