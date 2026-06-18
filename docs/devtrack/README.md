@@ -829,3 +829,4 @@
 | [#2004](https://github.com/RatLoopz/sahidawa-india/pull/2004) | 2026-06-17 | Backend | 16 | @shashank03-dev | [View Doc](devtrack/2026-06/PR-2004-fix-api-verify-twilio-webhook-signatures-on-notifi.md) / [ADR](devtrack/adr/ADR-034-fix-api-verify-twilio-webhook-signatures-on-notifi.md) |
 | [#1972](https://github.com/RatLoopz/sahidawa-india/pull/1972) | 2026-06-17 | Backend | 24 | @nimkarprachi17 | [View Doc](devtrack/2026-06/PR-1972-feat-api-add-origin-validation-to-batch-report-end.md) / [ADR](devtrack/adr/ADR-034-feat-api-add-origin-validation-to-batch-report-end.md) |
 | [#2007](https://github.com/RatLoopz/sahidawa-india/pull/2007) | 2026-06-17 | Frontend | 5 | @karansankrit01 | [View Doc](devtrack/2026-06/PR-2007-feat-add-clear-conversation-button.md) |
+| [#2037](https://github.com/RatLoopz/sahidawa-india/pull/2037) | 2026-06-18 | Backend | 9 | @Avinash-sdbegin | [View Doc](devtrack/2026-06/PR-2037-refactor-interactions-remove-any-types.md) |
