@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouter } from "@/i18n/routing";
 import { User, ShieldCheck, Bell, ChevronRight, ArrowLeft, LogIn, LogOut } from "lucide-react";
 import ABHABadge from "@/components/ABHABadge";
+import { useSession } from "@/src/components/AuthProvider";
 
 const ACCESS_TOKEN_KEY = "sb-access-token";
 
@@ -77,6 +78,7 @@ function readSessionFromToken(token: string | null): {
 
 export default function ProfilePage() {
     const router = useRouter();
+    const { token, isLoading: authLoading } = useSession();
     const [session, setSession] = useState<ProfileSession>({ status: "checking" });
 
     const accountTitle =
@@ -94,14 +96,16 @@ export default function ProfilePage() {
               : "No account connected";
 
     useEffect(() => {
-        const result = readSessionFromToken(localStorage.getItem(ACCESS_TOKEN_KEY));
+        if (authLoading) return;
+
+        const result = readSessionFromToken(token);
 
         if (result.clearToken) {
             localStorage.removeItem(ACCESS_TOKEN_KEY);
         }
 
         setSession(result.session);
-    }, []);
+    }, [authLoading, token]);
 
     const handleSignOut = () => {
         localStorage.removeItem(ACCESS_TOKEN_KEY);
@@ -228,9 +232,9 @@ export default function ProfilePage() {
                             <ChevronRight size={18} className="text-(--color-text-muted)" />
                         </Link>
 
-                        <button
-                            type="button"
-                            className="flex w-full items-center justify-between p-5 transition-colors hover:bg-(--color-surface-muted)"
+                        <Link
+                            href="/settings"
+                            className="flex items-center justify-between p-5 transition-colors hover:bg-(--color-surface-muted)"
                         >
                             <div className="flex items-center gap-3">
                                 <Bell size={20} className="text-red-500" />
@@ -239,11 +243,11 @@ export default function ProfilePage() {
                                 </span>
                             </div>
                             <ChevronRight size={18} className="text-(--color-text-muted)" />
-                        </button>
+                        </Link>
 
-                        <button
-                            type="button"
-                            className="flex w-full items-center justify-between p-5 transition-colors hover:bg-(--color-surface-muted)"
+                        <Link
+                            href="/privacy"
+                            className="flex items-center justify-between p-5 transition-colors hover:bg-(--color-surface-muted)"
                         >
                             <div className="flex items-center gap-3">
                                 <ShieldCheck
@@ -255,7 +259,7 @@ export default function ProfilePage() {
                                 </span>
                             </div>
                             <ChevronRight size={18} className="text-(--color-text-muted)" />
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>

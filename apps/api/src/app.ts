@@ -9,7 +9,10 @@ import cookieParser from "cookie-parser";
 import { doubleCsrf } from "csrf-csrf";
 import mapRouter from "./routes/map";
 import medicineSchedulesRouter from "./routes/medicineSchedules";
+
 import abhaRoutes from "./routes/abha";
+import trackingRouter from "./routes/tracking";
+import { initExpiryCron } from "./cron/expiry-check";
 
 // ── Environment Configuration ──────────────────────────────────────────────
 const rootEnvPath = path.resolve(__dirname, "../../../.env");
@@ -62,6 +65,9 @@ import alertsRouter from "./routes/alerts";
 import lasaRouter from "./routes/lasa";
 import mlRouter from "./routes/ml";
 import triageRouter from "./routes/triage";
+import interactionsRouter from "./routes/interactions";
+import alternativesRouter from "./routes/alternatives";
+import eligibilityRouter from "./routes/eligibility";
 import { supabase } from "./db/client";
 import { createCorsOptions } from "./config/cors";
 import { errorHandler } from "./middleware/errorHandler";
@@ -72,7 +78,7 @@ app.set("trust proxy", 1); // Trust first proxy (Nginx) — fixes req.ip for rat
 
 app.use(compression());
 app.use(cors(createCorsOptions()));
-
+initExpiryCron();
 // ── Global Middleware Configuration ───────────────────────────────────────
 app.use(cookieParser());
 
@@ -211,17 +217,22 @@ app.use("/reports", reportsRouter);
 app.use("/api/pharmacies", pharmaciesRouter);
 app.use("/api/verify/batch", batchRouter);
 app.use("/api/verify", verifyRouter);
-app.use("/api/analytics", analyticsRoutes);
+app.use("/api/analytics", requireAuth, requireRole("admin", "moderator"), analyticsRoutes);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/v1/notifications", notificationsRouter);
 app.use("/api/v1/scan", scanRouter);
 app.use("/api/v1/lasa", lasaRouter);
 app.use("/api/v1/alerts", alertsRouter);
+app.use("/api/v1/alternatives", alternativesRouter);
 app.use("/api/ml", mlRouter);
 app.use("/api/triage", triageRouter);
 app.use("/api/map", mapRouter);
+app.use("/api/v1/interactions", interactionsRouter);
 app.use("/api/schedules", medicineSchedulesRouter);
 app.use("/api/v1/abha", abhaRoutes);
+app.use("/api/v1/alternatives", alternativesRouter);
+app.use("/api/v1/scheme-eligibility", eligibilityRouter);
+app.use("/api/v1/medicines", trackingRouter);
 
 // ── Swagger UI Documentation (/api/docs) ──────────────────────────────────
 app.use(
