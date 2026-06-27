@@ -394,7 +394,25 @@ export async function POST(req: Request) {
 
         const formattedContents = mapMessagesToGeminiContents(trimmedMessages);
 
-        const supportedLocales = ["en", "gu", "bn", "te", "ta", "mr", "ur", "kn", "pa", "or", "hi"];
+        const supportedLocales = [
+            "en",
+            "gu",
+            "bn",
+            "te",
+            "ta",
+            "mr",
+            "ur",
+            "kn",
+            "pa",
+            "or",
+            "hi",
+            "as",
+            "ks",
+            "kok",
+            "mai",
+            "ml",
+            "sa",
+        ];
         const finalLocale = supportedLocales.includes(locale) ? locale : "en";
         const localeMap = {
             en: "English",
@@ -408,6 +426,12 @@ export async function POST(req: Request) {
             te: "Telugu",
             ur: "Urdu",
             or: "Odia",
+            as: "Assamese",
+            ks: "Kashmiri",
+            kok: "Konkani",
+            mai: "Maithili",
+            ml: "Malayalam",
+            sa: "Sanskrit",
         };
         const language = localeMap[finalLocale as keyof typeof localeMap] || "English";
         const systemPrompt = BASE_PROMPT.replace("{language}", language);
